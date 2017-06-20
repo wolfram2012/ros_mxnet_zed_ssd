@@ -1,4 +1,4 @@
-# COMS eye
+# ROS MXnet SSD
 
 ### Disclaimer
 This is a re-re-implementation of original SSD which is based on caffe. The official
