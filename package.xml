@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>comseye</name>
+  <name>ros_mxnet_ssd</name>
   <version>0.0.0</version>
   <description>The comseye package</description>
 

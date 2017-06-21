@@ -5,8 +5,14 @@ from timeit import default_timer as timer
 import cv2
 from tools.rand_sampler import RandSampler
 
+import rospy
+from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+
 cap = cv2.VideoCapture(0)
 ret,imgi = cap.read()
+ret,img_rect = cap.read()
 colors = dict()
 
 class DetIter(mx.io.DataIter):
@@ -82,9 +88,9 @@ class DetIter(mx.io.DataIter):
         batch_data = mx.nd.zeros((self.batch_size, 3, self._data_shape[0], self._data_shape[1]))
         batch_label = [] 
         global imgi
-        img = mx.nd.array(imgi)
+        # img = mx.nd.array(imgi)
         # imgr = mx.img.imdecode(img_content)
-        data = self._data_augmentation(img)
+        data = self._data_augmentation(imgi)
         batch_data[0] = data
             
         self._data = {'data': batch_data}
@@ -176,15 +182,37 @@ class Detector(object):
                     cv2.putText(img, text,
                                 (xmin, ymin - 2), cv2. FONT_HERSHEY_DUPLEX, 1, self.colorInv(colors[cls_id]), 1)
 
-        #cv2.namedWindow(stra)
+        cv2.namedWindow("stra")
         cv2.imshow('stra',img)
         # cv2.waitKey()
+
+    def ImgCcallback(self, ros_img):
+        global imgi
+        imgi = mx.img.imdecode(ros_img.data)
+        # imgi = img.copy()
+        # global img_rect
+        # img_rect = CvBridge().compressed_imgmsg_to_cv2(ros_img)
+
+    def Imgcallback(self, ros_img):
+        global img_rect
+        img_rect = CvBridge().imgmsg_to_cv2(ros_img)
+        # img_rect = img.copy()
+
     def detect_and_visualize(self, root_dir=None, extension=None,
                              classes=[], thresh=0.6, show_timer=False):
         
+        rospy.Subscriber("/zed/left/image_rect_color/compressed",CompressedImage, self.ImgCcallback,  queue_size = 4)
+        rospy.Subscriber("/zed/left/image_rect_color",Image, self.Imgcallback,  queue_size = 4)
+        im_path = '/home/wolfram/mxnet/example/ssd/data/demo/dog.jpg'
+        with open(im_path, 'rb') as fp:
+            img_content = fp.read()
+
+        global imgi
+        global img_rect
+        imgi = mx.img.imdecode(img_content)
         while(1):
-            global imgi
-            ret,imgi = cap.read()
+            
+            # ret,img_rect = cap.read()
             dets = self.im_detect(root_dir, extension, show_timer=show_timer)
             # if not isinstance(im_list, list):
             #     im_list = [im_list]
@@ -192,7 +220,8 @@ class Detector(object):
             # for k, det in enumerate(dets):
         
             # img[:, :, (0, 1, 2)] = img[:, :, (2, 1, 0)]
-            self.visualize_detection(imgi, dets[0], classes, thresh)
+            # img = img_rect.copy()
+            self.visualize_detection(img_rect, dets[0], classes, thresh)
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
