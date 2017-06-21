@@ -158,6 +158,7 @@ class Detector(object):
         height = img.shape[0]
         width = img.shape[1]
         global colors
+        global img_depth
         # print dets.shape[0]
         for i in range(dets.shape[0]):
             cls_id = int(dets[i, 0])
@@ -170,12 +171,19 @@ class Detector(object):
                     ymin = int(dets[i, 3] * height)
                     xmax = int(dets[i, 4] * width)
                     ymax = int(dets[i, 5] * height)
+                    img_roi = img_depth[ymin:ymax,xmin:xmax]
+                    temp_height = img_roi.shape[0] 
+                    temp_width = img_roi.shape[1]
+                    print("high:{} width:{} ".format(temp_height, temp_width ))
+                    # print("xmin:{} xmax:{} ymin:{} ymax:{}".format(xmin, xmax, ymin, ymax))
+                    biggest = np.amin(img_roi)
+                    required = (img_roi[int(0.5*(ymax-ymin)),int(0.5*(xmax-xmin))])
                     cv2.rectangle(
                         img, (xmin, ymax), (xmax, ymin), color=colors[cls_id])
                     class_name = str(cls_id)
                     if classes and len(classes) > cls_id:
                         class_name = classes[cls_id]
-                    text = '{:s} {:.2f}'.format(class_name, score)
+                    text = '{:s} {:.2f} {:.2f}'.format(class_name, score, required)
                     texSize, baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_DUPLEX, 1, 1)
                     cv2.rectangle(
                         img, (xmin, ymin - 2), (xmin + texSize[0], ymin - texSize[1]), colors[cls_id], -1)
@@ -189,20 +197,25 @@ class Detector(object):
     def ImgCcallback(self, ros_img):
         global imgi
         imgi = mx.img.imdecode(ros_img.data)
-        # imgi = img.copy()
-        # global img_rect
-        # img_rect = CvBridge().compressed_imgmsg_to_cv2(ros_img)
-
-    def Imgcallback(self, ros_img):
         global img_rect
-        img_rect = CvBridge().imgmsg_to_cv2(ros_img)
-        # img_rect = img.copy()
+        img_rect = CvBridge().compressed_imgmsg_to_cv2(ros_img)
+
+    # def Imgcallback(self, ros_img):
+    #     global img_rect
+    #     img_rect = CvBridge().imgmsg_to_cv2(ros_img)
+
+
+    def DepthImgcallback(self, ros_img):
+        global img_depth
+        img_depth = CvBridge().imgmsg_to_cv2(ros_img)
+
 
     def detect_and_visualize(self, root_dir=None, extension=None,
                              classes=[], thresh=0.6, show_timer=False):
         
         rospy.Subscriber("/zed/left/image_rect_color/compressed",CompressedImage, self.ImgCcallback,  queue_size = 4)
-        rospy.Subscriber("/zed/left/image_rect_color",Image, self.Imgcallback,  queue_size = 4)
+        # rospy.Subscriber("/zed/left/image_rect_color",Image, self.Imgcallback,  queue_size = 4)
+        rospy.Subscriber("/zed/depth/depth_registered",Image, self.DepthImgcallback,  queue_size = 4)
         im_path = '/home/wolfram/mxnet/example/ssd/data/demo/dog.jpg'
         with open(im_path, 'rb') as fp:
             img_content = fp.read()
