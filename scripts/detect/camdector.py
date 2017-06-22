@@ -174,7 +174,7 @@ class Detector(object):
                     img_roi = img_depth[ymin:ymax,xmin:xmax]
                     temp_height = img_roi.shape[0] 
                     temp_width = img_roi.shape[1]
-                    print("high:{} width:{} ".format(temp_height, temp_width ))
+                    # print("high:{} width:{} ".format(temp_height, temp_width ))
                     # print("xmin:{} xmax:{} ymin:{} ymax:{}".format(xmin, xmax, ymin, ymax))
                     biggest = np.amin(img_roi)
                     required = (img_roi[int(0.5*(ymax-ymin)),int(0.5*(xmax-xmin))])
